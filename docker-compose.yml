@@ -1,0 +1,35 @@
+services:
+  redpanda:
+    build: .
+    container_name: metro_redpanda
+    restart: unless-stopped
+    ports:
+      - "19092:19092"
+      - "9092:9092"
+      - "8081:8081"
+      - "18081:18081"
+      - "8082:8082"
+      - "18082:18082"
+      - "9644:9644"
+      - "33145:33145"
+    env_file:
+      - .env
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+      
+  init-topics:
+    image: redpandadata/redpanda:v24.3.1
+    container_name: metro_init_topics
+    depends_on:
+      - redpanda
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      "sleep 5 && rpk topic create seat-bookings \
+        --brokers redpanda:9092 \
+        --partitions 32 \
+        --topic-config retention.ms=3600000 \
+        --topic-config cleanup.policy=delete || true"
+    restart: "no"
+
+volumes:
+  redpanda_data:
