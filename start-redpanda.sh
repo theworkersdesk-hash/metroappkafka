@@ -16,7 +16,6 @@ echo "Configuring Redpanda..."
 echo "  Advertised Address: ${EXTERNAL_IP}:${KAFKA_PORT}"
 echo "  Internal Listener: 0.0.0.0:9092"
 
-# Generate redpanda.yaml (NO additional_start_flags here)
 cat > /tmp/redpanda.yaml <<EOF
 redpanda:
   developer_mode: true
@@ -45,10 +44,9 @@ redpanda:
 EOF
 
 echo "Starting Redpanda..."
-# Pass ALL flags here, NONE in the config file
 exec rpk redpanda start \
   --config /tmp/redpanda.yaml \
   --overprovisioned \
   --smp 1 \
-  --memory 1G \
+  --memory 600M \
   --reserve-memory 0M
