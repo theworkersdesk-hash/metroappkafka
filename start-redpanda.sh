@@ -22,6 +22,7 @@ redpanda:
   data_directory: /var/lib/redpanda/data
   node_id: 1
   cluster_id: redpanda-docker
+  empty_seed_starts_cluster: true
   
   kafka_api:
     - name: internal
@@ -33,7 +34,7 @@ redpanda:
       address: ${EXTERNAL_IP}
       port: ${KAFKA_PORT}
   
-  admin:
+  admin_api:
     - name: internal
       address: 0.0.0.0
       port: 9644
