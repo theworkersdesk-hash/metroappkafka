@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Determine environment
+# Detect Railway environment
 if [ -n "$RAILWAY_PUBLIC_DOMAIN" ]; then
     EXTERNAL_IP="$RAILWAY_PUBLIC_DOMAIN"
     KAFKA_PORT="${RAILWAY_TCP_PROXY_PORT:-9092}"
@@ -16,7 +16,7 @@ echo "Configuring Redpanda..."
 echo "  Advertised Address: ${EXTERNAL_IP}:${KAFKA_PORT}"
 echo "  Internal Listener: 0.0.0.0:9092"
 
-# Generate redpanda.yaml config file (without reserve-memory in additional_start_flags)
+# Generate redpanda.yaml (NO additional_start_flags here)
 cat > /tmp/redpanda.yaml <<EOF
 redpanda:
   developer_mode: true
@@ -42,14 +42,13 @@ redpanda:
   rpc_server:
     address: 0.0.0.0
     port: 33145
-
-rpk:
-  additional_start_flags:
-    - --overprovisioned
-    - --smp=1
-    - --memory=1G
 EOF
 
 echo "Starting Redpanda..."
-# Pass --reserve-memory directly to rpk start (not in config file)
-exec rpk redpanda start --config /tmp/redpanda.yaml --reserve-memory 0M
+# Pass ALL flags here, NONE in the config file
+exec rpk redpanda start \
+  --config /tmp/redpanda.yaml \
+  --overprovisioned \
+  --smp 1 \
+  --memory 1G \
+  --reserve-memory 0M
