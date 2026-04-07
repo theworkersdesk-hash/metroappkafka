@@ -1,0 +1,13 @@
+[build]
+builder = "DOCKERFILE"
+
+[deploy]
+startCommand = "/usr/local/bin/start-redpanda.sh"
+healthcheckPath = "/v1/status/ready"
+healthcheckPort = 9644
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Enable TCP Proxy for external Kafka access
+[[deploy.tcpProxies]]
+port = 9092

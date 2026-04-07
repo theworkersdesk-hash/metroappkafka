@@ -3,32 +3,33 @@ services:
     build: .
     container_name: metro_redpanda
     restart: unless-stopped
+    # Railway ignores these ports, but keep for local testing
     ports:
-      - "19092:19092"
-      - "9092:9092"
-      - "8081:8081"
-      - "18081:18081"
-      - "8082:8082"
-      - "18082:18082"
+      - "19092:9092"
       - "9644:9644"
-      - "33145:33145"
-    env_file:
-      - .env
+    environment:
+      - REDPANDA_EXTERNAL_IP=${REDPANDA_EXTERNAL_IP:-localhost}
+      - REDPANDA_MEMORY=512M
+      # Railway injects RAILWAY_TCP_PROXY_PORT automatically when TCP proxy enabled
     volumes:
       - redpanda_data:/var/lib/redpanda/data
-      
+
   init-topics:
     image: redpandadata/redpanda:v24.3.1
     container_name: metro_init_topics
     depends_on:
       - redpanda
-    entrypoint: ["/bin/bash", "-c"]
+    environment:
+      # Use internal Railway DNS (redpanda.railway.internal) or service name
+      - REDPANDA_BROKER=redpanda:9092
+    entrypoint: [ "/bin/bash", "-c" ]
     command: |
-      "sleep 5 && rpk topic create seat-bookings \
+      "sleep 10 && \
+       rpk topic create seat-bookings \
         --brokers redpanda:9092 \
-        --partitions 32 \
+        --partitions 3 \
         --topic-config retention.ms=3600000 \
-        --topic-config cleanup.policy=delete || true"
+        --topic-config cleanup.policy=delete || echo 'Topic exists or connection failed'"
     restart: "no"
 
 volumes:
