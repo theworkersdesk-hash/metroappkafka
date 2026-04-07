@@ -16,6 +16,7 @@ echo "Configuring Redpanda..."
 echo "  Advertised Address: ${EXTERNAL_IP}:${KAFKA_PORT}"
 echo "  Internal Listener: 0.0.0.0:9092"
 
+# Minimal config file (only non-CLI settings)
 cat > /tmp/redpanda.yaml <<EOF
 redpanda:
   developer_mode: true
@@ -23,30 +24,16 @@ redpanda:
   node_id: 1
   cluster_id: redpanda-docker
   empty_seed_starts_cluster: true
-  
-  kafka_api:
-    - name: internal
-      address: 0.0.0.0
-      port: 9092
-  
-  advertised_kafka_api:
-    - name: internal
-      address: ${EXTERNAL_IP}
-      port: ${KAFKA_PORT}
-  
-  admin_api:
-    - name: internal
-      address: 0.0.0.0
-      port: 9644
-  
-  rpc_server:
-    address: 0.0.0.0
-    port: 33145
 EOF
 
 echo "Starting Redpanda..."
+# Use CLI flags for all listeners (bypasses YAML validation issues)
 exec rpk redpanda start \
   --config /tmp/redpanda.yaml \
+  --kafka-addr "internal://0.0.0.0:9092" \
+  --advertise-kafka-addr "internal://${EXTERNAL_IP}:${KAFKA_PORT}" \
+  --admin-addr "internal://0.0.0.0:9644" \
+  --rpc-addr "0.0.0.0:33145" \
   --overprovisioned \
   --smp 1 \
   --memory 600M \
