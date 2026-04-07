@@ -11,18 +11,43 @@ else
     echo "Local development environment"
 fi
 
-echo "Starting Redpanda..."
+echo "Configuring Redpanda..."
 echo "  Advertised: ${EXTERNAL_IP}:${KAFKA_PORT}"
 
-exec redpanda start \
+# Create config file for v23.3.5
+cat > /tmp/redpanda.yaml <<EOF
+redpanda:
+  developer_mode: true
+  data_directory: /var/lib/redpanda/data
+  node_id: 1
+  cluster_id: redpanda-docker
+  empty_seed_starts_cluster: true
+  
+  kafka_api:
+    - name: internal
+      address: 0.0.0.0
+      port: 9092
+  
+  advertised_kafka_api:
+    - name: internal
+      address: ${EXTERNAL_IP}
+      port: ${KAFKA_PORT}
+  
+  admin_api:
+    - name: internal
+      address: 0.0.0.0
+      port: 9644
+  
+  rpc_server:
+    address: 0.0.0.0
+    port: 33145
+EOF
+
+echo "Starting Redpanda..."
+# Use rpk redpanda start (not redpanda start) with YAML config
+exec rpk redpanda start \
+  --config /tmp/redpanda.yaml \
+  --overprovisioned \
   --smp 1 \
   --memory 600M \
-  --reserve-memory 0M \
-  --overprovisioned \
-  --set redpanda.developer_mode=true \
-  --set redpanda.empty_seed_starts_cluster=true \
-  --set redpanda.kafka_api="[{'name':'internal','address':'0.0.0.0','port':9092}]" \
-  --set redpanda.advertised_kafka_api="[{'name':'internal','address':'${EXTERNAL_IP}','port':${KAFKA_PORT}}]" \
-  --set redpanda.admin_api="[{'name':'internal','address':'0.0.0.0','port':9644}]" \
-  --set redpanda.rpc_server.address=0.0.0.0 \
-  --set redpanda.rpc_server.port=33145
+  --reserve-memory 0M
