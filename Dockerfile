@@ -1,11 +1,14 @@
-FROM redpandadata/redpanda:v23.3.5
+FROM apache/kafka:3.6.1
 
 USER root
-COPY start-redpanda.sh /usr/local/bin/start-redpanda.sh
-RUN chmod +x /usr/local/bin/start-redpanda.sh
+COPY start-kafka.sh /usr/local/bin/start-kafka.sh
+RUN chmod +x /usr/local/bin/start-kafka.sh
 
-USER redpanda
+# Create data directory
+RUN mkdir -p /var/lib/kafka/data && chown kafka:kafka /var/lib/kafka/data
 
-EXPOSE 9092 9644 33145
+USER kafka
 
-ENTRYPOINT ["/usr/local/bin/start-redpanda.sh"]
+EXPOSE 9092 9093
+
+ENTRYPOINT ["/usr/local/bin/start-kafka.sh"]
