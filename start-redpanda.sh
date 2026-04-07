@@ -33,7 +33,7 @@ redpanda:
       address: ${EXTERNAL_IP}
       port: ${KAFKA_PORT}
   
-  admin_api:
+  admin:
     - name: internal
       address: 0.0.0.0
       port: 9644
