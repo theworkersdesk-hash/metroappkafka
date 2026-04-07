@@ -1,12 +1,12 @@
-FROM apache/kafka:3.6.0
+FROM apache/kafka:3.7.0
 
 USER root
 COPY start-kafka.sh /usr/local/bin/start-kafka.sh
 RUN chmod +x /usr/local/bin/start-kafka.sh
 
-RUN mkdir -p /var/lib/kafka/data && chown kafka:kafka /var/lib/kafka/data
+RUN mkdir -p /var/lib/kafka/data && chown appuser:appuser /var/lib/kafka/data
 
-USER kafka
+USER appuser
 
 EXPOSE 9092 9093
 
