@@ -7,13 +7,8 @@ EXTERNAL_IP=${REDPANDA_EXTERNAL_IP:-localhost}
 echo "Starting Redpanda with Advertised IP: $EXTERNAL_IP"
 
 exec redpanda start \
-  --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092 \
-  --advertise-kafka-addr internal://redpanda:9092,external://$EXTERNAL_IP:19092 \
-  --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082 \
-  --advertise-pandaproxy-addr internal://redpanda:8082,external://$EXTERNAL_IP:18082 \
-  --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081 \
-  --rpc-addr 0.0.0.0:33145 \
-  --advertise-rpc-addr $EXTERNAL_IP:33145 \
   --smp 1 \
   --memory 512M \
-  --default-log-level=warn
+  --set redpanda.developer_mode=true \
+  --set redpanda.kafka_api="[{'name': 'internal','address': '0.0.0.0','port': 9092}]" \
+  --set redpanda.advertised_kafka_api="[{'name': 'internal','address': '$EXTERNAL_IP','port': ${RAILWAY_TCP_PROXY_PORT:-19092}}]"
