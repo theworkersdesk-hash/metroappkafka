@@ -1,27 +1,57 @@
 #!/bin/bash
 set -e
 
-# Railway injects these automatically when TCP Proxy is enabled
-# RAILWAY_TCP_PROXY_PORT = the external port clients connect to (e.g., 7312)
-# RAILWAY_PUBLIC_DOMAIN = your service domain (e.g., redpanda-xxxx.up.railway.app)
+# Determine environment
+if [ -n "$RAILWAY_PUBLIC_DOMAIN" ]; then
+    # Railway environment
+    EXTERNAL_IP="$RAILWAY_PUBLIC_DOMAIN"
+    KAFKA_PORT="${RAILWAY_TCP_PROXY_PORT:-9092}"
+    echo "Railway environment detected"
+else
+    # Local development
+    EXTERNAL_IP="${REDPANDA_EXTERNAL_IP:-localhost}"
+    KAFKA_PORT="${REDPANDA_ADVERTISED_PORT:-19092}"
+    echo "Local development environment"
+fi
 
-EXTERNAL_IP=${REDPANDA_EXTERNAL_IP:-${RAILWAY_PUBLIC_DOMAIN:-localhost}}
-ADVERTISED_PORT=${RAILWAY_TCP_PROXY_PORT:-9092}
+echo "Configuring Redpanda..."
+echo "  Advertised Address: ${EXTERNAL_IP}:${KAFKA_PORT}"
+echo "  Internal Listener: 0.0.0.0:9092"
 
-echo "=========================================="
-echo "Redpanda Railway Configuration"
-echo "External Address: ${EXTERNAL_IP}:${ADVERTISED_PORT}"
-echo "Internal Listener: 0.0.0.0:9092"
-echo "=========================================="
+# Generate redpanda.yaml config file
+cat > /tmp/redpanda.yaml <<EOF
+redpanda:
+  developer_mode: true
+  data_directory: /var/lib/redpanda/data
+  node_id: 1
+  cluster_id: redpanda-docker
+  
+  kafka_api:
+    - name: internal
+      address: 0.0.0.0
+      port: 9092
+  
+  advertised_kafka_api:
+    - name: internal
+      address: ${EXTERNAL_IP}
+      port: ${KAFKA_PORT}
+  
+  admin_api:
+    - name: internal
+      address: 0.0.0.0
+      port: 9644
+  
+  rpc_server:
+    address: 0.0.0.0
+    port: 33145
 
-exec redpanda start \
-  --smp 1 \
-  --memory 1G \
-  --reserve-memory 0M \
-  --overprovisioned \
-  --set redpanda.developer_mode=true \
-  --set redpanda.node_id=1 \
-  --set redpanda.cluster_id=redpanda-railway \
-  --set redpanda.kafka_api="[{'name':'internal','address':'0.0.0.0','port':9092}]" \
-  --set redpanda.advertised_kafka_api="[{'name':'internal','address':'${EXTERNAL_IP}','port':${ADVERTISED_PORT}}]" \
-  --set redpanda.admin_api="[{'name':'internal','address':'0.0.0.0','port':9644}]"
+rpk:
+  additional_start_flags:
+    - --overprovisioned
+    - --smp=1
+    - --memory=1G
+    - --reserve-memory=0M
+EOF
+
+echo "Starting Redpanda..."
+exec rpk redpanda start --config /tmp/redpanda.yaml
