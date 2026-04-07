@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# Detect Railway environment
 if [ -n "$RAILWAY_PUBLIC_DOMAIN" ]; then
     EXTERNAL_IP="$RAILWAY_PUBLIC_DOMAIN"
     KAFKA_PORT="${RAILWAY_TCP_PROXY_PORT:-9092}"
@@ -12,33 +11,18 @@ else
     echo "Local development environment"
 fi
 
-echo "Configuring Redpanda..."
-echo "  Advertised Address: ${EXTERNAL_IP}:${KAFKA_PORT}"
-echo "  Internal Listener: 0.0.0.0:9092"
-
-# Config file with correct property names
-cat > /tmp/redpanda.yaml <<EOF
-redpanda:
-  developer_mode: true
-  data_directory: /var/lib/redpanda/data
-  node_id: 1
-  cluster_id: redpanda-docker
-  empty_seed_starts_cluster: true
-  
-  admin:
-    - name: internal
-      address: 0.0.0.0
-      port: 9644
-EOF
-
 echo "Starting Redpanda..."
-# CLI flags only for options that support it
-exec rpk redpanda start \
-  --config /tmp/redpanda.yaml \
-  --kafka-addr "internal://0.0.0.0:9092" \
-  --advertise-kafka-addr "internal://${EXTERNAL_IP}:${KAFKA_PORT}" \
-  --rpc-addr "0.0.0.0:33145" \
-  --overprovisioned \
+echo "  Advertised: ${EXTERNAL_IP}:${KAFKA_PORT}"
+
+exec redpanda start \
   --smp 1 \
   --memory 600M \
-  --reserve-memory 0M
+  --reserve-memory 0M \
+  --overprovisioned \
+  --set redpanda.developer_mode=true \
+  --set redpanda.empty_seed_starts_cluster=true \
+  --set redpanda.kafka_api="[{'name':'internal','address':'0.0.0.0','port':9092}]" \
+  --set redpanda.advertised_kafka_api="[{'name':'internal','address':'${EXTERNAL_IP}','port':${KAFKA_PORT}}]" \
+  --set redpanda.admin_api="[{'name':'internal','address':'0.0.0.0','port':9644}]" \
+  --set redpanda.rpc_server.address=0.0.0.0 \
+  --set redpanda.rpc_server.port=33145

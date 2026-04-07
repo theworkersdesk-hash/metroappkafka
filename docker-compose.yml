@@ -4,9 +4,9 @@ services:
     container_name: metro_redpanda
     restart: unless-stopped
     ports:
-      - "19092:9092" # Kafka API (external:internal)
-      - "9644:9644" # Admin API
-      - "33145:33145" # RPC
+      - "19092:9092"
+      - "9644:9644"
+      - "33145:33145"
     environment:
       - REDPANDA_EXTERNAL_IP=localhost
       - REDPANDA_ADVERTISED_PORT=19092
@@ -20,21 +20,20 @@ services:
       start_period: 15s
 
   init-topics:
-    image: redpandadata/redpanda:v24.3.1
+    image: redpandadata/redpanda:v23.3.5
     container_name: metro_init_topics
     depends_on:
       redpanda:
         condition: service_healthy
     command: >
       bash -c "
-        echo 'Waiting for Redpanda to be ready...' &&
         sleep 3 &&
         rpk topic create seat-bookings \
           --brokers redpanda:9092 \
           --partitions 3 \
           --topic-config retention.ms=3600000 \
           --topic-config cleanup.policy=delete \
-          --replicas 1 || echo 'Topic already exists or created'"
+          --replicas 1 || echo 'Topic already exists'"
     restart: "no"
 
 volumes:
